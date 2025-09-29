@@ -38,16 +38,6 @@
             flex-wrap: wrap;
         }
 
-        .search-box {
-            padding: 12px 20px;
-            border: none;
-            border-radius: 25px;
-            font-size: 16px;
-            width: 300px;
-            max-width: 100%;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
         .load-button {
             padding: 12px 25px;
             background: #4CAF50;
@@ -215,12 +205,11 @@
 </head>
 <body>
     <div class="header">
-        <h1>🎴 포켓몬 카드 갤러리</h1>
+        <h1>A4b 하이클래스팩</h1>
         <p>클릭해서 카드를 확대해보세요!</p>
     </div>
 
     <div class="controls">
-        <input type="text" class="search-box" placeholder="카드 번호로 검색... (예: 1, 5, 10)" id="searchInput">
         <button class="load-button" onclick="loadCards()">카드 로드</button>
         <div class="card-count" id="cardCount">로드된 카드: 0장</div>
     </div>
@@ -236,11 +225,11 @@
     </div>
 
     <script>
-        let totalCards = 100;
+        let maxCards = 400;
         let loadedCards = [];
         let allCards = [];
 
-        // 카드 로드 함수
+        // 폴더에서 사용 가능한 모든 카드를 감지하고 로드하는 함수
         async function loadCards() {
             const gallery = document.getElementById('gallery');
             const cardCount = document.getElementById('cardCount');
@@ -250,17 +239,61 @@
             loadedCards = [];
             allCards = [];
 
-            // 로딩 상태 표시
-            for (let i = 1; i <= totalCards; i++) {
-                const placeholder = document.createElement('div');
-                placeholder.className = 'card-container loading-placeholder';
-                gallery.appendChild(placeholder);
-            }
+            let foundCards = 0;
+            let consecutiveFailures = 0;
+            const maxConsecutiveFailures = 20; // 20개 연속 실패하면 중단
 
-            // 카드들을 순차적으로 로드
-            for (let i = 1; i <= totalCards; i++) {
-                await loadSingleCard(i);
+            // 1부터 maxCards까지 순차적으로 확인
+            for (let i = 1; i <= maxCards; i++) {
+                const cardExists = await checkCardExists(i);
+                
+                if (cardExists) {
+                    consecutiveFailures = 0; // 성공하면 실패 카운터 리셋
+                    foundCards++;
+                    
+                    // 로딩 플레이스홀더 추가
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'card-container loading-placeholder';
+                    placeholder.id = `card-${i}`;
+                    gallery.appendChild(placeholder);
+                    
+                    // 카드 로드
+                    await loadSingleCard(i);
+                } else {
+                    consecutiveFailures++;
+                    // 연속으로 너무 많이 실패하면 중단 (파일이 더 이상 없다고 판단)
+                    if (consecutiveFailures >= maxConsecutiveFailures && foundCards > 0) {
+                        console.log(`${maxConsecutiveFailures}개 연속 실패로 검색 중단. 총 ${foundCards}장 발견.`);
+                        break;
+                    }
+                }
+                
+                // 카운터 업데이트
+                cardCount.textContent = `로드된 카드: ${loadedCards.length}장 (검색중: ${i}/${maxCards})`;
+                
+                // 잠깐 대기 (너무 빠른 요청 방지)
+                if (i % 10 === 0) {
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
             }
+            
+            cardCount.textContent = `로드된 카드: ${loadedCards.length}장 (총 ${foundCards}장 발견)`;
+        }
+
+        // 카드 존재 여부를 확인하는 함수
+        async function checkCardExists(cardNumber) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(true);
+                img.onerror = () => resolve(false);
+                img.src = `${cardNumber}.png`;
+                
+                // 타임아웃 설정 (3초)
+                setTimeout(() => {
+                    img.onload = img.onerror = null;
+                    resolve(false);
+                }, 3000);
+            });
         }
 
         async function loadSingleCard(cardNumber) {
@@ -277,13 +310,17 @@
                     cardContainer.setAttribute('data-card', cardNumber);
                     
                     cardContainer.innerHTML = `
-                        <img class="card-image" src="${cardNumber}.png" alt="포켓몬 카드 ${cardNumber}" onclick="openModal(this.src)">
+                        <img class="card-image" src="${cardNumber}.png" alt="카드 ${cardNumber}" onclick="openModal(this.src)">
                         <div class="card-number">#${cardNumber}</div>
                     `;
                     
                     // 로딩 플레이스홀더 교체
-                    const placeholder = gallery.children[cardNumber - 1];
-                    gallery.replaceChild(cardContainer, placeholder);
+                    const placeholder = document.getElementById(`card-${cardNumber}`);
+                    if (placeholder) {
+                        gallery.replaceChild(cardContainer, placeholder);
+                    } else {
+                        gallery.appendChild(cardContainer);
+                    }
                     
                     loadedCards.push(cardNumber);
                     allCards.push({number: cardNumber, element: cardContainer});
@@ -293,38 +330,25 @@
                 };
                 
                 img.onerror = function() {
-                    // 로드 실패한 경우
-                    const errorCard = document.createElement('div');
-                    errorCard.className = 'error-card';
-                    errorCard.innerHTML = `카드 #${cardNumber}<br>로드 실패`;
-                    
-                    const placeholder = gallery.children[cardNumber - 1];
-                    gallery.replaceChild(errorCard, placeholder);
+                    // 로드 실패한 경우 - 플레이스홀더 제거
+                    const placeholder = document.getElementById(`card-${cardNumber}`);
+                    if (placeholder) {
+                        placeholder.remove();
+                    }
                 };
                 
                 img.src = `${cardNumber}.png`;
                 
             } catch (error) {
                 console.error(`카드 ${cardNumber} 로드 실패:`, error);
+                const placeholder = document.getElementById(`card-${cardNumber}`);
+                if (placeholder) {
+                    placeholder.remove();
+                }
             }
         }
 
-        // 검색 기능
-        document.getElementById('searchInput').addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            const cards = document.querySelectorAll('.card-container');
-            
-            cards.forEach(card => {
-                const cardNumber = card.getAttribute('data-card');
-                if (!cardNumber) return;
-                
-                if (cardNumber.includes(searchTerm) || searchTerm === '') {
-                    card.style.display = 'block';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        });
+        // 검색 기능 제거됨
 
         // 모달 기능
         function openModal(src) {
@@ -352,10 +376,9 @@
             }
         });
 
-        // 페이지 로드시 데모 카드 자동 로드
+        // 페이지 로드시 자동 로드
         window.addEventListener('load', function() {
-            // 데모용으로 처음 10장만 로드
-            totalCards = 10;
+            // 자동으로 카드들을 찾아서 로드
             loadCards();
         });
     </script>
