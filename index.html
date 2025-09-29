@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>포켓몬 카드 갤러리</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            width: 300px;
+            max-width: 100%;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .load-button {
+            padding: 12px 25px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .load-button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .card-count {
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            background: rgba(255,255,255,0.1);
+            padding: 12px 20px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 25px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .card-container {
+            position: relative;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: white;
+        }
+
+        .card-container:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .card-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .card-container:hover .card-image {
+            transform: scale(1.05);
+        }
+
+        .card-number {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .loading-placeholder {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 15px;
+            height: 400px;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: -200% 0;
+            }
+            100% {
+                background-position: 200% 0;
+            }
+        }
+
+        .error-card {
+            background: #ffebee;
+            border: 2px dashed #f44336;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 400px;
+            color: #f44336;
+            font-weight: bold;
+            border-radius: 15px;
+        }
+
+        /* 모달 스타일 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .modal img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .close {
+            position: absolute;
+            top: 20px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #ff6b6b;
+        }
+
+        @media (max-width: 768px) {
+            .gallery {
+                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+                gap: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎴 포켓몬 카드 갤러리</h1>
+        <p>클릭해서 카드를 확대해보세요!</p>
+    </div>
+
+    <div class="controls">
+        <input type="text" class="search-box" placeholder="카드 번호로 검색... (예: 1, 5, 10)" id="searchInput">
+        <button class="load-button" onclick="loadCards()">카드 로드</button>
+        <div class="card-count" id="cardCount">로드된 카드: 0장</div>
+    </div>
+
+    <div class="gallery" id="gallery"></div>
+
+    <!-- 모달 -->
+    <div id="modal" class="modal">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <div class="modal-content">
+            <img id="modalImage" src="" alt="">
+        </div>
+    </div>
+
+    <script>
+        let totalCards = 100;
+        let loadedCards = [];
+        let allCards = [];
+
+        // 카드 로드 함수
+        async function loadCards() {
+            const gallery = document.getElementById('gallery');
+            const cardCount = document.getElementById('cardCount');
+            
+            // 기존 카드들 초기화
+            gallery.innerHTML = '';
+            loadedCards = [];
+            allCards = [];
+
+            // 로딩 상태 표시
+            for (let i = 1; i <= totalCards; i++) {
+                const placeholder = document.createElement('div');
+                placeholder.className = 'card-container loading-placeholder';
+                gallery.appendChild(placeholder);
+            }
+
+            // 카드들을 순차적으로 로드
+            for (let i = 1; i <= totalCards; i++) {
+                await loadSingleCard(i);
+            }
+        }
+
+        async function loadSingleCard(cardNumber) {
+            const gallery = document.getElementById('gallery');
+            const cardCount = document.getElementById('cardCount');
+            
+            try {
+                // 이미지 로드 테스트
+                const img = new Image();
+                img.onload = function() {
+                    // 성공적으로 로드된 경우
+                    const cardContainer = document.createElement('div');
+                    cardContainer.className = 'card-container';
+                    cardContainer.setAttribute('data-card', cardNumber);
+                    
+                    cardContainer.innerHTML = `
+                        <img class="card-image" src="${cardNumber}.png" alt="포켓몬 카드 ${cardNumber}" onclick="openModal(this.src)">
+                        <div class="card-number">#${cardNumber}</div>
+                    `;
+                    
+                    // 로딩 플레이스홀더 교체
+                    const placeholder = gallery.children[cardNumber - 1];
+                    gallery.replaceChild(cardContainer, placeholder);
+                    
+                    loadedCards.push(cardNumber);
+                    allCards.push({number: cardNumber, element: cardContainer});
+                    
+                    // 카운터 업데이트
+                    cardCount.textContent = `로드된 카드: ${loadedCards.length}장`;
+                };
+                
+                img.onerror = function() {
+                    // 로드 실패한 경우
+                    const errorCard = document.createElement('div');
+                    errorCard.className = 'error-card';
+                    errorCard.innerHTML = `카드 #${cardNumber}<br>로드 실패`;
+                    
+                    const placeholder = gallery.children[cardNumber - 1];
+                    gallery.replaceChild(errorCard, placeholder);
+                };
+                
+                img.src = `${cardNumber}.png`;
+                
+            } catch (error) {
+                console.error(`카드 ${cardNumber} 로드 실패:`, error);
+            }
+        }
+
+        // 검색 기능
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const cards = document.querySelectorAll('.card-container');
+            
+            cards.forEach(card => {
+                const cardNumber = card.getAttribute('data-card');
+                if (!cardNumber) return;
+                
+                if (cardNumber.includes(searchTerm) || searchTerm === '') {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+
+        // 모달 기능
+        function openModal(src) {
+            const modal = document.getElementById('modal');
+            const modalImg = document.getElementById('modalImage');
+            modal.style.display = 'block';
+            modalImg.src = src;
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        // 모달 외부 클릭시 닫기
+        document.getElementById('modal').onclick = function(event) {
+            if (event.target === this) {
+                closeModal();
+            }
+        }
+
+        // ESC 키로 모달 닫기
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        // 페이지 로드시 데모 카드 자동 로드
+        window.addEventListener('load', function() {
+            // 데모용으로 처음 10장만 로드
+            totalCards = 10;
+            loadCards();
+        });
+    </script>
+</body>
+</html>
