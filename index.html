@@ -22,12 +22,45 @@
             text-align: center;
             margin-bottom: 30px;
             color: white;
+            position: relative;
         }
 
         .header h1 {
             font-size: 2.5em;
             margin-bottom: 10px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .latest-video {
+            position: absolute;
+            top: 0;
+            right: 20px;
+            text-align: center;
+        }
+
+        .latest-video-title {
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .latest-video a {
+            display: block;
+            transition: transform 0.3s ease;
+        }
+
+        .latest-video a:hover {
+            transform: scale(1.05);
+        }
+
+        .latest-video img {
+            width: 200px;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            cursor: pointer;
         }
 
         .controls {
@@ -200,6 +233,15 @@
                 flex-direction: column;
                 align-items: center;
             }
+
+            .latest-video {
+                position: static;
+                margin-top: 20px;
+            }
+
+            .latest-video img {
+                width: 150px;
+            }
         }
     </style>
 </head>
@@ -207,6 +249,13 @@
     <div class="header">
         <h1>Promo-A</h1>
         <p>클릭해서 카드를 확대해보세요!</p>
+        <div class="latest-video">
+            <div class="latest-video-title">포켓뉴스 최신영상</div>
+             <!-- 유튜브링크수정 위치 -->
+            <a href="https://www.youtube.com/@poketnews" target="_blank" rel="noopener noreferrer">
+                <img src="nail.png" alt="포켓뉴스 최신영상">
+            </a>
+        </div>
     </div>
 
     <div class="controls">
@@ -448,7 +497,7 @@
                     allCards.push({number: cardNumber, element: cardContainer});
                     
                     // 숫자만 업데이트
-                    cardCount.textContent = loadedCards.length;
+                    cardCount.textContent = `${loadedCards.length}장`;
                 };
                 
                 img.onerror = function() {
