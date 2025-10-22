@@ -13,14 +13,14 @@
 
         body {
             font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #000000;
             min-height: 100vh;
             padding: 20px;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             color: white;
             position: relative;
         }
@@ -29,6 +29,11 @@
             font-size: 2.5em;
             margin-bottom: 10px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 16px;
+            margin-bottom: 20px;
         }
 
         .latest-video {
@@ -63,6 +68,39 @@
             cursor: pointer;
         }
 
+        /* 탭 스타일 */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-button {
+            padding: 12px 30px;
+            background: #808080;
+            color: white;
+            border: 2px solid #808080;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .tab-button:hover {
+            background: #999999;
+            transform: translateY(-2px);
+        }
+
+        .tab-button.active {
+            background: #808080;
+            color: white;
+            border-color: #808080;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
         .controls {
             display: flex;
             justify-content: center;
@@ -73,7 +111,7 @@
 
         .load-button {
             padding: 12px 25px;
-            background: #4CAF50;
+            background: #808080;
             color: white;
             border: none;
             border-radius: 25px;
@@ -85,7 +123,7 @@
         }
 
         .load-button:hover {
-            background: #45a049;
+            background: #999999;
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(0,0,0,0.3);
         }
@@ -100,6 +138,14 @@
             padding: 12px 20px;
             border-radius: 25px;
             backdrop-filter: blur(10px);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
         }
 
         .gallery {
@@ -165,18 +211,6 @@
             }
         }
 
-        .error-card {
-            background: #ffebee;
-            border: 2px dashed #f44336;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 400px;
-            color: #f44336;
-            font-weight: bold;
-            border-radius: 15px;
-        }
-
         /* 모달 스타일 */
         .modal {
             display: none;
@@ -229,6 +263,11 @@
                 font-size: 2em;
             }
             
+            .tabs {
+                flex-direction: column;
+                align-items: center;
+            }
+
             .controls {
                 flex-direction: column;
                 align-items: center;
@@ -247,24 +286,41 @@
 </head>
 <body>
     <div class="header">
-        <h1>Promo-A</h1>
+        <h1>포켓뉴스 프로모카드 임시갤러리</h1>
         <p>클릭해서 카드를 확대해보세요!</p>
         <div class="latest-video">
             <div class="latest-video-title">포켓뉴스 최신영상</div>
-             <!-- 유튜브링크수정 위치 -->
             <a href="https://youtu.be/buGhwfQ6hq4" target="_blank" rel="noopener noreferrer">
                 <img src="nail.png" alt="포켓뉴스 최신영상">
             </a>
         </div>
     </div>
 
-    <div class="controls">
-        <button class="load-button" onclick="loadCards()">카드 로드</button>
-        <button class="load-button" onclick="clearCache()" style="background: #ff6b6b;">캐시 초기화</button>
-        <div class="card-count">로드된 카드: <span id="cardCount">0장</span></div>
+    <!-- 탭 버튼 -->
+    <div class="tabs">
+        <button class="tab-button active" onclick="switchTab('promo-a')">Promo-A</button>
+        <button class="tab-button" onclick="switchTab('promo-b')">Promo-B 예정</button>
     </div>
 
-    <div class="gallery" id="gallery"></div>
+    <!-- Promo-A 탭 -->
+    <div id="promo-a" class="tab-content active">
+        <div class="controls">
+            <button class="load-button" onclick="loadCards('promo-a')">카드 로드</button>
+            <button class="load-button" onclick="clearCache('promo-a')" style="background: #808080;">캐시 초기화</button>
+            <div class="card-count">로드된 카드: <span id="cardCount-a">0장</span></div>
+        </div>
+        <div class="gallery" id="gallery-a"></div>
+    </div>
+
+    <!-- Promo-B 탭 -->
+    <div id="promo-b" class="tab-content">
+        <div class="controls">
+            <button class="load-button" onclick="loadCards('promo-b')">카드 로드</button>
+            <button class="load-button" onclick="clearCache('promo-b')" style="background: #808080;">캐시 초기화</button>
+            <div class="card-count">로드된 카드: <span id="cardCount-b">0장</span></div>
+        </div>
+        <div class="gallery" id="gallery-b"></div>
+    </div>
 
     <!-- 모달 -->
     <div id="modal" class="modal">
@@ -276,12 +332,43 @@
 
     <script>
         let maxCards = 400;
-        let loadedCards = [];
-        let allCards = [];
-        const CACHE_NAME = 'pokemon-cards-cache-v1';
+        let loadedCards = {
+            'promo-a': [],
+            'promo-b': []
+        };
+        let allCards = {
+            'promo-a': [],
+            'promo-b': []
+        };
+        const CACHE_NAME_PREFIX = 'pokemon-cards-cache';
         const DB_NAME = 'PokemonCardsDB';
         const DB_VERSION = 1;
-        const STORE_NAME = 'cardsList';
+
+        let currentTab = 'promo-a';
+
+        // 탭 전환 함수
+        function switchTab(tabName) {
+            // 모든 탭 버튼 비활성화
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // 모든 탭 콘텐츠 숨기기
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // 선택된 탭 활성화
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            currentTab = tabName;
+            
+            // 해당 탭의 카드가 로드되지 않았으면 자동 로드
+            if (loadedCards[tabName].length === 0) {
+                loadCards(tabName);
+            }
+        }
 
         // IndexedDB 초기화
         function openDatabase() {
@@ -293,19 +380,22 @@
                 
                 request.onupgradeneeded = (event) => {
                     const db = event.target.result;
-                    if (!db.objectStoreNames.contains(STORE_NAME)) {
-                        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                    if (!db.objectStoreNames.contains('promo-a')) {
+                        db.createObjectStore('promo-a', { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains('promo-b')) {
+                        db.createObjectStore('promo-b', { keyPath: 'id' });
                     }
                 };
             });
         }
 
         // 카드 리스트 저장
-        async function saveCardsList(cardNumbers) {
+        async function saveCardsList(promoType, cardNumbers) {
             try {
                 const db = await openDatabase();
-                const transaction = db.transaction([STORE_NAME], 'readwrite');
-                const store = transaction.objectStore(STORE_NAME);
+                const transaction = db.transaction([promoType], 'readwrite');
+                const store = transaction.objectStore(promoType);
                 
                 await store.put({
                     id: 'availableCards',
@@ -320,11 +410,11 @@
         }
 
         // 카드 리스트 불러오기
-        async function loadCardsList() {
+        async function loadCardsList(promoType) {
             try {
                 const db = await openDatabase();
-                const transaction = db.transaction([STORE_NAME], 'readonly');
-                const store = transaction.objectStore(STORE_NAME);
+                const transaction = db.transaction([promoType], 'readonly');
+                const store = transaction.objectStore(promoType);
                 
                 return new Promise((resolve, reject) => {
                     const request = store.get('availableCards');
@@ -354,10 +444,10 @@
         }
 
         // 이미지 캐싱 함수
-        async function cacheImage(cardNumber) {
+        async function cacheImage(promoType, cardNumber) {
             try {
-                const cache = await caches.open(CACHE_NAME);
-                const url = `${cardNumber}.png`;
+                const cache = await caches.open(`${CACHE_NAME_PREFIX}-${promoType}`);
+                const url = `${promoType}/${cardNumber}.png`;
                 const response = await fetch(url);
                 
                 if (response.ok) {
@@ -370,40 +460,29 @@
             }
         }
 
-        // 캐시에서 이미지 가져오기
-        async function getFromCache(cardNumber) {
-            try {
-                const cache = await caches.open(CACHE_NAME);
-                const response = await cache.match(`${cardNumber}.png`);
-                return response ? true : false;
-            } catch (error) {
-                return false;
-            }
-        }
-
-        // 폴더에서 사용 가능한 모든 카드를 감지하고 로드하는 함수
-        async function loadCards() {
-            const gallery = document.getElementById('gallery');
-            const cardCount = document.getElementById('cardCount');
+        // 카드 로드 함수
+        async function loadCards(promoType) {
+            const gallery = document.getElementById(`gallery-${promoType === 'promo-a' ? 'a' : 'b'}`);
+            const cardCount = document.getElementById(`cardCount-${promoType === 'promo-a' ? 'a' : 'b'}`);
             
             // 기존 카드들 초기화
             gallery.innerHTML = '';
-            loadedCards = [];
-            allCards = [];
+            loadedCards[promoType] = [];
+            allCards[promoType] = [];
             cardCount.textContent = '0장';
 
             // 먼저 저장된 카드 리스트 확인
-            const cachedCards = await loadCardsList();
+            const cachedCards = await loadCardsList(promoType);
             
             if (cachedCards && cachedCards.length > 0) {
                 // 캐시된 리스트가 있으면 빠르게 로드
                 for (const cardNumber of cachedCards) {
                     const placeholder = document.createElement('div');
                     placeholder.className = 'card-container loading-placeholder';
-                    placeholder.id = `card-${cardNumber}`;
+                    placeholder.id = `card-${promoType}-${cardNumber}`;
                     gallery.appendChild(placeholder);
                     
-                    await loadSingleCard(cardNumber, true);
+                    await loadSingleCard(promoType, cardNumber, true);
                     
                     if (cachedCards.indexOf(cardNumber) % 5 === 0) {
                         await new Promise(resolve => setTimeout(resolve, 5));
@@ -420,7 +499,7 @@
 
             // 1부터 maxCards까지 순차적으로 확인
             for (let i = 1; i <= maxCards; i++) {
-                const cardExists = await checkCardExists(i);
+                const cardExists = await checkCardExists(promoType, i);
                 
                 if (cardExists) {
                     consecutiveFailures = 0;
@@ -429,12 +508,12 @@
                     // 로딩 플레이스홀더 추가
                     const placeholder = document.createElement('div');
                     placeholder.className = 'card-container loading-placeholder';
-                    placeholder.id = `card-${i}`;
+                    placeholder.id = `card-${promoType}-${i}`;
                     gallery.appendChild(placeholder);
                     
                     // 카드 로드 및 캐싱
-                    await loadSingleCard(i, false);
-                    await cacheImage(i);
+                    await loadSingleCard(promoType, i, false);
+                    await cacheImage(promoType, i);
                 } else {
                     consecutiveFailures++;
                     if (consecutiveFailures >= maxConsecutiveFailures && foundCards.length > 0) {
@@ -451,17 +530,17 @@
             
             // 발견된 카드 리스트 저장
             if (foundCards.length > 0) {
-                await saveCardsList(foundCards);
+                await saveCardsList(promoType, foundCards);
             }
         }
 
         // 카드 존재 여부를 확인하는 함수
-        async function checkCardExists(cardNumber) {
+        async function checkCardExists(promoType, cardNumber) {
             return new Promise((resolve) => {
                 const img = new Image();
                 img.onload = () => resolve(true);
                 img.onerror = () => resolve(false);
-                img.src = `${cardNumber}.png`;
+                img.src = `${promoType}/${cardNumber}.png`;
                 
                 setTimeout(() => {
                     img.onload = img.onerror = null;
@@ -470,9 +549,10 @@
             });
         }
 
-        async function loadSingleCard(cardNumber, fromCache = false) {
-            const gallery = document.getElementById('gallery');
-            const cardCount = document.getElementById('cardCount');
+        async function loadSingleCard(promoType, cardNumber, fromCache = false) {
+            const suffix = promoType === 'promo-a' ? 'a' : 'b';
+            const gallery = document.getElementById(`gallery-${suffix}`);
+            const cardCount = document.getElementById(`cardCount-${suffix}`);
             
             try {
                 const img = new Image();
@@ -482,36 +562,36 @@
                     cardContainer.setAttribute('data-card', cardNumber);
                     
                     cardContainer.innerHTML = `
-                        <img class="card-image" src="${cardNumber}.png" alt="카드 ${cardNumber}" onclick="openModal(this.src)">
+                        <img class="card-image" src="${promoType}/${cardNumber}.png" alt="카드 ${cardNumber}" onclick="openModal(this.src)">
                         <div class="card-number">#${cardNumber}</div>
                     `;
                     
-                    const placeholder = document.getElementById(`card-${cardNumber}`);
+                    const placeholder = document.getElementById(`card-${promoType}-${cardNumber}`);
                     if (placeholder) {
                         gallery.replaceChild(cardContainer, placeholder);
                     } else {
                         gallery.appendChild(cardContainer);
                     }
                     
-                    loadedCards.push(cardNumber);
-                    allCards.push({number: cardNumber, element: cardContainer});
+                    loadedCards[promoType].push(cardNumber);
+                    allCards[promoType].push({number: cardNumber, element: cardContainer});
                     
                     // 숫자만 업데이트
-                    cardCount.textContent = `${loadedCards.length}장`;
+                    cardCount.textContent = `${loadedCards[promoType].length}장`;
                 };
                 
                 img.onerror = function() {
-                    const placeholder = document.getElementById(`card-${cardNumber}`);
+                    const placeholder = document.getElementById(`card-${promoType}-${cardNumber}`);
                     if (placeholder) {
                         placeholder.remove();
                     }
                 };
                 
-                img.src = `${cardNumber}.png`;
+                img.src = `${promoType}/${cardNumber}.png`;
                 
             } catch (error) {
                 console.error(`카드 ${cardNumber} 로드 실패:`, error);
-                const placeholder = document.getElementById(`card-${cardNumber}`);
+                const placeholder = document.getElementById(`card-${promoType}-${cardNumber}`);
                 if (placeholder) {
                     placeholder.remove();
                 }
@@ -519,16 +599,16 @@
         }
 
         // 캐시 초기화 함수
-        async function clearCache() {
+        async function clearCache(promoType) {
             if (confirm('저장된 카드 정보와 이미지 캐시를 모두 삭제하시겠습니까?')) {
                 try {
                     // Cache API 삭제
-                    await caches.delete(CACHE_NAME);
+                    await caches.delete(`${CACHE_NAME_PREFIX}-${promoType}`);
                     
                     // IndexedDB 삭제
                     const db = await openDatabase();
-                    const transaction = db.transaction([STORE_NAME], 'readwrite');
-                    const store = transaction.objectStore(STORE_NAME);
+                    const transaction = db.transaction([promoType], 'readwrite');
+                    const store = transaction.objectStore(promoType);
                     await store.delete('availableCards');
                     db.close();
                     
@@ -567,10 +647,9 @@
             }
         });
 
-        // 페이지 로드시 자동 로드
+        // 페이지 로드시 첫 번째 탭 자동 로드
         window.addEventListener('load', function() {
-            // 자동으로 카드들을 찾아서 로드
-            loadCards();
+            loadCards('promo-a');
         });
     </script>
 </body>
